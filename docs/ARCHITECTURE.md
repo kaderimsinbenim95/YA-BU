@@ -354,6 +354,91 @@ Subscribers:
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2024  
+**Version**: 2.0  
+**Last Updated**: 2026  
 **Status**: Active Development
+
+---
+
+## 8. Full Module Map (v2.0)
+
+```
+SatoshiOS-AI-Blockchain/
+├── core/
+│   ├── blockchain/
+│   │   ├── block.rs              ✅ Block + Transaction types, Merkle root
+│   │   ├── chain.rs              ✅ Chain management, fork resolution
+│   │   └── blockchain_core.rs    ✅ PoW miner, mempool, balance ledger
+│   ├── consensus/
+│   │   └── hybrid_consensus.py   ✅ PoW + PoS hybrid, dynamic switching
+│   ├── language/
+│   │   └── satoshi_lang.py       ✅ Lexer, Parser (operator precedence,
+│   │                                   function calls, while loops),
+│   │                                   Interpreter
+│   ├── network/
+│   │   ├── p2p_node.py           ✅ Async P2P node, peer discovery
+│   │   ├── gossip_protocol.py    ✅ Push-pull gossip, INV/BLOCK/TX
+│   │   └── sync_manager.py       ✅ IBD + incremental chain sync
+│   ├── runtime/
+│   │   ├── concurrent_runtime.rs ✅ Tokio multi-thread runtime
+│   │   ├── scheduler.rs          ✅ Work-stealing scheduler
+│   │   └── lock_free.rs          ✅ Lock-free stack, queue, ring buffer
+│   ├── storage/
+│   │   ├── leveldb_store.py      ✅ LevelDB / in-memory KV store
+│   │   ├── state_trie.py         ✅ Merkle Patricia Trie, account state
+│   │   └── mempool.py            ✅ Priority mempool, nonce ordering
+│   └── vm/
+│       ├── gas_meter.py          ✅ Opcode gas table, GasMeter
+│       ├── bytecode_compiler.py  ✅ AST → bytecode, label patching
+│       └── satoshi_vm.py         ✅ Stack VM, full opcode set
+├── ai_security/
+│   ├── threat_detection.py       ✅ ML anomaly scoring
+│   ├── self_learning_engine.py   ✅ Neural net + real backpropagation
+│   ├── adaptive_defense.py       ✅ Auto defense level escalation
+│   ├── feedback_loop.py          ✅ Human/system feedback integration
+│   └── knowledge_base.py         ✅ Threat knowledge base
+├── api/
+│   ├── rest_api.py               ✅ Flask REST API (blocks/txs/accounts)
+│   └── websocket_server.py       ✅ Real-time event streaming
+├── examples/
+│   ├── hello_satoshi.sl          ✅ Basic SatoshiLang demo
+│   └── smart_contract.sl         ✅ ERC-20 style token contract
+├── tests/
+│   ├── test_simulation.py        ✅ Component tests
+│   ├── threat_scenarios.py       ✅ Attack simulations
+│   ├── performance_benchmark.py  ✅ Benchmarks
+│   └── monitoring_dashboard.py   ✅ Live dashboard
+└── docs/
+    ├── ARCHITECTURE.md           ✅ This document
+    ├── LANGUAGE_SPEC.md          ✅ SatoshiLang grammar
+    └── CONSENSUS_DESIGN.md       ✅ Consensus algorithm details
+```
+
+---
+
+## 9. Network Architecture (P2P + API)
+
+```
+                   ┌──────────────────────┐
+                   │   REST API (HTTP)     │
+                   │   :8080               │
+                   └──────────┬───────────┘
+                              │
+                   ┌──────────▼───────────┐
+                   │  WebSocket Server     │
+                   │  :8081 (real-time)    │
+                   └──────────┬───────────┘
+                              │
+        ┌─────────────────────▼──────────────────────┐
+        │               SatoshiOS Node                │
+        │  ┌───────────────────────────────────────┐  │
+        │  │  BlockchainCore  │  SyncManager        │  │
+        │  │  + Mempool       │  + GossipProtocol   │  │
+        │  └─────────────────┬─────────────────────┘  │
+        │                    │ P2P                     │
+        └────────────────────┼────────────────────────┘
+                   ┌─────────┼───────┐
+              ┌────▼──┐  ┌───▼──┐  ┌▼─────┐
+              │ Node1 │  │Node2 │  │ Node3│
+              └───────┘  └──────┘  └──────┘
+```

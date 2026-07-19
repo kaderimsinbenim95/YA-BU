@@ -435,6 +435,8 @@ class Parser:
             return self._parse_let_statement()
         elif self._current_token().type == TokenType.IF:
             return self._parse_if_statement()
+        elif self._current_token().type == TokenType.WHILE:
+            return self._parse_while_statement()
         elif self._current_token().type == TokenType.RETURN:
             return self._parse_return_statement()
         else:
@@ -460,19 +462,133 @@ class Parser:
         }
     
     def _parse_expression(self) -> Dict[str, Any]:
-        """Parse expression (simplified)"""
+        """Parse a full expression with binary operator precedence."""
+        return self._parse_or()
+
+    def _parse_or(self) -> Dict[str, Any]:
+        left = self._parse_and()
+        while self._current_token().type == TokenType.OR:
+            self._advance()
+            right = self._parse_and()
+            left = {"type": "binary", "op": "||", "left": left, "right": right}
+        return left
+
+    def _parse_and(self) -> Dict[str, Any]:
+        left = self._parse_equality()
+        while self._current_token().type == TokenType.AND:
+            self._advance()
+            right = self._parse_equality()
+            left = {"type": "binary", "op": "&&", "left": left, "right": right}
+        return left
+
+    def _parse_equality(self) -> Dict[str, Any]:
+        left = self._parse_comparison()
+        while self._current_token().type in (TokenType.DOUBLE_EQUAL, TokenType.NOT_EQUAL):
+            op = self._current_token().value
+            self._advance()
+            right = self._parse_comparison()
+            left = {"type": "binary", "op": op, "left": left, "right": right}
+        return left
+
+    def _parse_comparison(self) -> Dict[str, Any]:
+        left = self._parse_addition()
+        while self._current_token().type in (TokenType.LT, TokenType.GT, TokenType.LE, TokenType.GE):
+            op = self._current_token().value
+            self._advance()
+            right = self._parse_addition()
+            left = {"type": "binary", "op": op, "left": left, "right": right}
+        return left
+
+    def _parse_addition(self) -> Dict[str, Any]:
+        left = self._parse_multiplication()
+        while self._current_token().type in (TokenType.PLUS, TokenType.MINUS):
+            op = self._current_token().value
+            self._advance()
+            right = self._parse_multiplication()
+            left = {"type": "binary", "op": op, "left": left, "right": right}
+        return left
+
+    def _parse_multiplication(self) -> Dict[str, Any]:
+        left = self._parse_unary()
+        while self._current_token().type in (TokenType.STAR, TokenType.SLASH, TokenType.PERCENT):
+            op = self._current_token().value
+            self._advance()
+            right = self._parse_unary()
+            left = {"type": "binary", "op": op, "left": left, "right": right}
+        return left
+
+    def _parse_unary(self) -> Dict[str, Any]:
+        if self._current_token().type == TokenType.NOT:
+            self._advance()
+            operand = self._parse_unary()
+            return {"type": "unary", "op": "!", "operand": operand}
+        if self._current_token().type == TokenType.MINUS:
+            self._advance()
+            operand = self._parse_unary()
+            return {"type": "unary", "op": "-", "operand": operand}
+        return self._parse_primary()
+
+    def _parse_primary(self) -> Dict[str, Any]:
+        """Parse primary expressions (literals, identifiers, calls, parens)."""
         token = self._current_token()
-        self._advance()
-        
+
         if token.type == TokenType.INTEGER:
+            self._advance()
             return {"type": "integer", "value": int(token.value)}
-        elif token.type == TokenType.STRING:
+
+        if token.type == TokenType.FLOAT:
+            self._advance()
+            return {"type": "float", "value": float(token.value)}
+
+        if token.type == TokenType.STRING:
+            self._advance()
             return {"type": "string", "value": token.value}
-        elif token.type == TokenType.IDENTIFIER:
-            return {"type": "identifier", "name": token.value}
-        
+
+        if token.type == TokenType.TRUE:
+            self._advance()
+            return {"type": "boolean", "value": True}
+
+        if token.type == TokenType.FALSE:
+            self._advance()
+            return {"type": "boolean", "value": False}
+
+        if token.type == TokenType.IDENTIFIER:
+            name = token.value
+            self._advance()
+            # Function call: name(args...)
+            if self._current_token().type == TokenType.LPAREN:
+                return self._parse_call(name)
+            # Field access: name.field
+            if self._current_token().type == TokenType.DOT:
+                self._advance()
+                field = self._current_token().value
+                self._advance()
+                return {"type": "field_access", "object": name, "field": field}
+            return {"type": "identifier", "name": name}
+
+        if token.type == TokenType.LPAREN:
+            self._advance()  # skip '('
+            expr = self._parse_expression()
+            if self._current_token().type == TokenType.RPAREN:
+                self._advance()  # skip ')'
+            return expr
+
+        # Fallback
+        self._advance()
         return {"type": "unknown"}
-    
+
+    def _parse_call(self, name: str) -> Dict[str, Any]:
+        """Parse function call: name(arg1, arg2, ...)"""
+        self._advance()  # skip '('
+        args = []
+        while self._current_token().type != TokenType.RPAREN and not self._is_at_end():
+            args.append(self._parse_expression())
+            if self._current_token().type == TokenType.COMMA:
+                self._advance()
+        if self._current_token().type == TokenType.RPAREN:
+            self._advance()  # skip ')'
+        return {"type": "call", "name": name, "args": args}
+
     def _parse_if_statement(self) -> Dict[str, Any]:
         """Parse if statement"""
         self._advance()  # Skip 'if'
@@ -492,6 +608,13 @@ class Parser:
             "else": else_block
         }
     
+    def _parse_while_statement(self) -> Dict[str, Any]:
+        """Parse while loop"""
+        self._advance()  # Skip 'while'
+        condition = self._parse_expression()
+        body = self._parse_block()
+        return {"type": "while", "condition": condition, "body": body}
+
     def _parse_return_statement(self) -> Dict[str, Any]:
         """Parse return statement"""
         self._advance()  # Skip 'return'
