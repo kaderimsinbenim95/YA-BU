@@ -177,6 +177,9 @@ fn current_timestamp() -> u64 {
 mod tests {
     use super::*;
 
+    /// Starting nonce for a freshly created block (will be incremented by the PoW solver).
+    const INITIAL_NONCE: u64 = 0;
+
     #[test]
     fn test_transaction_hash_deterministic() {
         let tx = Transaction::new("alice", "bob", 100, 1);
@@ -199,14 +202,14 @@ mod tests {
     #[test]
     fn test_block_creation() {
         let txs = vec![Transaction::new("alice", "bob", 50, 1)];
-        let block = Block::new(1, "prevhash".to_string(), txs, 0, 2, "miner1".to_string());
+        let block = Block::new(1, "prevhash".to_string(), txs, INITIAL_NONCE, 2, "miner1".to_string());
         assert_eq!(block.header.index, 1);
         assert_eq!(block.tx_count(), 1);
     }
 
     #[test]
     fn test_block_hash_length() {
-        let block = Block::new(0, "genesis".to_string(), vec![], 0, 0, "genesis".to_string());
+        let block = Block::new(0, "genesis".to_string(), vec![], INITIAL_NONCE, 0, "genesis".to_string());
         assert_eq!(block.hash.len(), 64);
     }
 }

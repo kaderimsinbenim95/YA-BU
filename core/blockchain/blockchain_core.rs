@@ -155,7 +155,7 @@ pub fn mine_pow(block: &mut Block) -> u64 {
         attempts += 1;
 
         if attempts > 10_000_000 {
-            panic!("PoW: mining timeout after {} attempts", attempts);
+            panic!("PoW: mining timeout after {} attempts (limit: {})", attempts, 10_000_000);
         }
     }
 }

@@ -8,6 +8,7 @@ Walks the AST produced by satoshi_lang.py and emits a flat list of
 
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+import hashlib
 
 from core.vm.gas_meter import Opcode
 
@@ -278,7 +279,6 @@ class BytecodeCompiler:
 
         elif t == "string":
             # Push string hash (strings are treated as identifiers in the VM)
-            import hashlib
             hval = int(hashlib.sha256(expr["value"].encode()).hexdigest()[:8], 16)
             self._emit(Opcode.PUSH, hval, comment=f'push str "{expr["value"]}"')
 

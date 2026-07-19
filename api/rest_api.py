@@ -30,8 +30,9 @@ except ImportError:
             return decorator
         def run(self, *a, **kw): pass
 
-from core.storage.leveldb_store import LevelDBStore
-from core.storage.mempool import Mempool
+MIN_GAS_LIMIT = 21_000   # Minimum gas for a plain transfer
+DEFAULT_CHAIN_PATH = "/var/lib/satoshi_chain"   # Persistent default location
+
 from core.consensus.hybrid_consensus import HybridConsensus, NetworkMetrics
 
 
@@ -51,7 +52,7 @@ def create_app(
 
     # Defaults
     if store is None:
-        store = LevelDBStore("/tmp/satoshi_chain_api")
+        store = LevelDBStore(DEFAULT_CHAIN_PATH)
     if mempool is None:
         mempool = Mempool()
     if consensus is None:
@@ -157,8 +158,8 @@ def create_app(
 
         if amount <= 0:
             return err("Amount must be positive")
-        if gas_limit < 21_000:
-            return err("Gas limit too low (minimum 21000)")
+        if gas_limit < MIN_GAS_LIMIT:
+            return err(f"Gas limit too low (minimum {MIN_GAS_LIMIT})")
 
         # Generate tx_id
         raw = f"{from_addr}{to_addr}{amount}{nonce}{int(time.time())}"

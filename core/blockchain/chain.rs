@@ -258,6 +258,9 @@ pub struct ChainStats {
 mod tests {
     use super::*;
 
+    /// Starting nonce for test blocks; real blocks increment nonce during PoW.
+    const INITIAL_NONCE: u64 = 0;
+
     fn make_block(index: u64, prev_hash: &str, nonce: u64) -> Block {
         Block::new(
             index,
@@ -280,7 +283,7 @@ mod tests {
     fn test_add_valid_block() {
         let mut chain = Chain::new();
         let tip_hash = chain.tip().unwrap().hash.clone();
-        let block = make_block(1, &tip_hash, 0);
+        let block = make_block(1, &tip_hash, INITIAL_NONCE);
         assert!(chain.add_block(block).is_ok());
         assert_eq!(chain.height(), 2);
     }
@@ -288,7 +291,7 @@ mod tests {
     #[test]
     fn test_invalid_prev_hash_rejected() {
         let mut chain = Chain::new();
-        let block = make_block(1, "wrong_hash", 0);
+        let block = make_block(1, "wrong_hash", INITIAL_NONCE);
         assert!(matches!(chain.add_block(block), Err(ChainError::InvalidPrevHash(_))));
     }
 
@@ -296,7 +299,7 @@ mod tests {
     fn test_validate_chain_ok() {
         let mut chain = Chain::new();
         let h = chain.tip().unwrap().hash.clone();
-        let b = make_block(1, &h, 0);
+        let b = make_block(1, &h, INITIAL_NONCE);
         chain.add_block(b).unwrap();
         assert!(chain.validate_chain().is_ok());
     }
