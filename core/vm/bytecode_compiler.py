@@ -278,10 +278,19 @@ class BytecodeCompiler:
             self._emit(Opcode.PUSH, fixed, comment=f"push float {expr['value']} as fixed")
 
         elif t == "string":
-            # Push a 64-bit integer derived from the first 16 hex chars of
-            # the SHA-256 hash of the string value.  Using 16 chars (64 bits)
-            # provides a collision probability of ~2^-32 for typical contract
-            # string sets, which is acceptable for VM use.
+            # String literals are mapped to 64-bit integers for VM stack storage
+            # by truncating the SHA-256 hash to its first 16 hex characters (64 bits).
+            #
+            # Trade-offs and limitations:
+            #   • Birthday collision boundary: ~2^32 unique strings can be hashed
+            #     before a ~50 % collision probability is reached.
+            #   • This is acceptable for compile-time string constants in smart
+            #     contracts (e.g. event names, permission keys) where the total
+            #     number of distinct literals is typically small (< 1 000).
+            #   • It is NOT suitable as a cryptographic commitment or where two
+            #     different strings must be guaranteed to produce different values.
+            #     For that use-case, callers should hash at runtime using the KECCAK
+            #     or SHA256 opcodes inside the VM rather than at compile time.
             hval = int(hashlib.sha256(expr["value"].encode()).hexdigest()[:16], 16)
             self._emit(Opcode.PUSH, hval, comment=f'push str "{expr["value"]}"')
 

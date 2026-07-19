@@ -137,11 +137,32 @@ impl InternalMempool {
 
 // ─── Proof-of-Work Miner ────────────────────────────────────────────────────
 
+/// Error returned when mining exhausts the nonce space.
+#[derive(Debug)]
+pub struct MiningError {
+    pub attempts: u64,
+    pub difficulty: u8,
+}
+
+impl std::fmt::Display for MiningError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "PoW: no solution found after {} attempts at difficulty {}",
+            self.attempts, self.difficulty
+        )
+    }
+}
+
 /// Maximum nonce attempts before the miner gives up.
 const MAX_MINING_ATTEMPTS: u64 = 10_000_000;
 
 /// Increments nonce until block hash meets difficulty target.
-pub fn mine_pow(block: &mut Block) -> u64 {
+///
+/// Returns the number of attempts on success, or a [`MiningError`] when the
+/// attempt limit is exceeded (e.g., difficulty is set too high for the current
+/// hardware or block template).
+pub fn mine_pow(block: &mut Block) -> Result<u64, MiningError> {
     let target = "0".repeat(block.header.difficulty as usize);
     let mut attempts: u64 = 0;
 
@@ -152,13 +173,16 @@ pub fn mine_pow(block: &mut Block) -> u64 {
                 "[PoW] Mined block #{} — nonce: {}, attempts: {}, hash: {}",
                 block.header.index, block.header.nonce, attempts, &block.hash[..16]
             );
-            return attempts;
+            return Ok(attempts);
         }
         block.header.nonce += 1;
         attempts += 1;
 
         if attempts > MAX_MINING_ATTEMPTS {
-            panic!("PoW: mining timeout after {} attempts (limit: {})", attempts, MAX_MINING_ATTEMPTS);
+            return Err(MiningError {
+                attempts,
+                difficulty: block.header.difficulty,
+            });
         }
     }
 }
@@ -221,7 +245,7 @@ impl BlockchainCore {
             self.miner_address.clone(),
         );
 
-        mine_pow(&mut block);
+        mine_pow(&mut block).map_err(|e| ChainError::InvalidBlock(e.to_string()))?;
         let block_hash = block.hash.clone();
 
         // Apply transactions to balances

@@ -31,7 +31,14 @@ except ImportError:
         def run(self, *a, **kw): pass
 
 MIN_GAS_LIMIT = 21_000   # Minimum gas for a plain transfer
-DEFAULT_CHAIN_PATH = "/var/lib/satoshi_chain"   # Persistent default location
+# Default storage path.  Prefer the environment variable SATOSHI_CHAIN_PATH;
+# fall back to ~/.satoshi_chain which is always writable without root privileges.
+import os as _os
+DEFAULT_CHAIN_PATH = _os.environ.get(
+    "SATOSHI_CHAIN_PATH",
+    _os.path.join(_os.path.expanduser("~"), ".satoshi_chain"),
+)
+del _os
 
 from core.storage.leveldb_store import LevelDBStore
 from core.storage.mempool import Mempool

@@ -5,6 +5,21 @@ SatoshiVM — Stack-Based Virtual Machine
 Executes SatoshiVM bytecode produced by the BytecodeCompiler.
 Supports arithmetic, logic, memory, storage, control flow, and
 environment queries.  Gas is metered via GasMeter.
+
+Control-flow convention — JUMPI semantics
+-----------------------------------------
+SatoshiVM's JUMPI instruction jumps when the condition is **FALSY** (zero,
+None, or False).  This is the opposite of EVM (which jumps when the condition
+is truthy) and is sometimes called a "JUMPZ" (jump-if-zero) in other VMs.
+
+Rationale: the bytecode compiler emits JUMPI to skip over a branch body when
+the guard condition fails.  For ``if cond { body }``, the compiler evaluates
+*cond*, emits ``JUMPI → end_label``, then emits *body*, then places
+``end_label``.  This matches the natural structure of if-else trees and
+requires no additional NOT at the call site.
+
+Developers porting code from EVM should invert their condition before emitting
+JUMPI, or use ``NOT`` + ``JUMPI``.
 """
 
 import hashlib
