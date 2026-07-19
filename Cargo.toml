@@ -1,0 +1,3 @@
+[workspace]
+members = ["satoshi-core"]
+resolver = "2"

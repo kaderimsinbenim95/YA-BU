@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="SatoshiOS AI Blockchain Dashboard" />
+  <link rel="manifest" href="manifest.json" />
+  <title>SatoshiOS</title>
+  <style>
+    /* ── Reset & base ───────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --text:     #c9d1d9;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --yellow:   #d29922;
+      --orange:   #f0883e;
+      --red:      #f85149;
+      --blue:     #58a6ff;
+      --purple:   #a371f7;
+      --radius:   12px;
+    }
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+
+    /* ── Top bar ────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; letter-spacing: .5px; }
+    .topbar .badge {
+      font-size: 11px; padding: 3px 8px; border-radius: 20px;
+      background: #1f2937; color: var(--green); border: 1px solid var(--green);
+    }
+
+    /* ── Nav tabs ───────────────────────────────────────── */
+    .tabs {
+      display: flex; background: var(--surface);
+      border-bottom: 1px solid var(--border); overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto; padding: 10px 16px; font-size: 13px; cursor: pointer;
+      border-bottom: 2px solid transparent; color: var(--muted);
+      white-space: nowrap; transition: color .2s, border-color .2s;
+    }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    /* ── Page layout ────────────────────────────────────── */
+    .page { display: none; padding: 16px; }
+    .page.active { display: block; }
+
+    /* ── Cards ──────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .card-value {
+      font-size: 24px; font-weight: 700; color: var(--text);
+    }
+    .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Grid ───────────────────────────────────────────── */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid1 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+    /* ── Status dot ─────────────────────────────────────── */
+    .dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 6px;
+    }
+    .dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    .dot.orange { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+    .dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+
+    /* ── Progress bar ───────────────────────────────────── */
+    .progress-wrap { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 8px; }
+    .progress-bar  { height: 100%; border-radius: 4px; transition: width .6s ease; }
+
+    /* ── List ───────────────────────────────────────────── */
+    .list-item {
+      border-bottom: 1px solid var(--border); padding: 10px 0;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .list-item .val   { font-size: 13px; font-weight: 600; text-align: right; }
+    .mono { font-family: "SFMono-Regular", Consolas, monospace; font-size: 11px; color: var(--blue); }
+
+    /* ── Form inputs ────────────────────────────────────── */
+    input, select {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); font-size: 14px; margin-bottom: 10px;
+      outline: none; transition: border-color .2s;
+    }
+    input:focus, select:focus { border-color: var(--blue); }
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+
+    /* ── Buttons ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 11px 20px; border-radius: 8px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-danger  { background: var(--red);  color: #fff; }
+    .btn-ghost   { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+    /* ── Alert box ──────────────────────────────────────── */
+    .alert {
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;
+      font-size: 13px; border: 1px solid;
+    }
+    .alert-success { background: #0d2718; border-color: var(--green);  color: var(--green); }
+    .alert-error   { background: #2d1117; border-color: var(--red);    color: var(--red); }
+    .alert-warn    { background: #2d1c00; border-color: var(--yellow);  color: var(--yellow); }
+    .alert-info    { background: #0d1a2e; border-color: var(--blue);   color: var(--blue); }
+
+    /* ── Section heading ────────────────────────────────── */
+    .section-title {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .5px;
+    }
+
+    /* ── Spinner ────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin .7s linear infinite; display: inline-block;
+    }
+
+    /* ── Connection status bar ──────────────────────────── */
+    #conn-bar {
+      font-size: 12px; padding: 6px 16px;
+      background: #161b22; border-bottom: 1px solid var(--border);
+      color: var(--muted); display: flex; align-items: center; gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Connection status -->
+<div id="conn-bar">
+  <span class="dot" id="conn-dot" style="background:var(--yellow)"></span>
+  <span id="conn-text">Bağlanıyor...</span>
+</div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <h1>⚡ SatoshiOS</h1>
+  <span class="badge" id="node-badge">Node v1.0.0</span>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" onclick="showTab('blocks')">🔗 Bloklar</div>
+  <div class="tab" onclick="showTab('tx')">💸 İşlem Gönder</div>
+  <div class="tab" onclick="showTab('mempool')">⏳ Mempool</div>
+  <div class="tab" onclick="showTab('security')">🛡️ Güvenlik</div>
+  <div class="tab" onclick="showTab('settings')">⚙️ Ayarlar</div>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────────────────────────── -->
+<div class="page active" id="page-dashboard">
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Blok Yüksekliği</div>
+      <div class="card-value" id="d-height">—</div>
+      <div class="card-sub">Zincir ucu</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mempool</div>
+      <div class="card-value" id="d-mempool">—</div>
+      <div class="card-sub">Bekleyen işlem</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Konsensüs</div>
+      <div class="card-value" style="font-size:15px" id="d-consensus">—</div>
+      <div class="card-sub">Aktif mekanizma</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Güvenlik</div>
+      <div class="card-value" style="font-size:15px" id="d-threat">—</div>
+      <div class="card-sub">Tehdit seviyesi</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Zincir İpucu Hash</div>
+    <div class="mono" id="d-tip" style="word-break:break-all;font-size:11px;padding-top:4px">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Son Güncelleme</div>
+    <div id="d-updated" style="font-size:13px;color:var(--muted)">—</div>
+  </div>
+
+  <button class="btn btn-primary" onclick="refreshDashboard()" style="margin-bottom:12px">
+    🔄 Yenile
+  </button>
+</div>
+
+<!-- ── BLOCKS ─────────────────────────────────────────────────────── -->
+<div class="page" id="page-blocks">
+  <p class="section-title">Son Bloklar</p>
+  <div id="blocks-list">
+    <div style="text-align:center;padding:24px;color:var(--muted)">
+      <div class="spinner" style="margin:auto"></div>
+      <div style="margin-top:8px">Yükleniyor...</div>
+    </div>
+  </div>
+  <button class="btn btn-ghost" onclick="loadBlocks()" style="margin-top:8px">🔄 Yenile</button>
+
+  <p class="section-title" style="margin-top:20px">Blok Ara</p>
+  <label>Blok numarası</label>
+  <input id="block-num" type="number" min="0" placeholder="Örn: 42" />
+  <button class="btn btn-primary" onclick="fetchBlock()">🔍 Getir</button>
+  <div id="block-result" style="margin-top:12px"></div>
+</div>
+
+<!-- ── SEND TX ─────────────────────────────────────────────────────── -->
+<div class="page" id="page-tx">
+  <div class="card">
+    <div class="card-title">Yeni İşlem Gönder</div>
+
+    <label>Gönderen Adres</label>
+    <input id="tx-from" type="text" placeholder="0xABCDEF..." />
+
+    <label>Alıcı Adres</label>
+    <input id="tx-to" type="text" placeholder="0x123456..." />
+
+    <label>Miktar (Satoshi)</label>
+    <input id="tx-amount" type="number" min="1" placeholder="1000" />
+
+    <label>Nonce</label>
+    <input id="tx-nonce" type="number" min="0" placeholder="0" />
+
+    <label>Gas Fiyatı (opsiyonel)</label>
+    <input id="tx-gas-price" type="number" min="1" placeholder="1" />
+
+    <label>Gas Limiti (opsiyonel)</label>
+    <input id="tx-gas-limit" type="number" min="21000" placeholder="21000" />
+
+    <div id="tx-alert" style="margin-bottom:10px"></div>
+    <button class="btn btn-primary" onclick="sendTransaction()">🚀 Gönder</button>
+  </div>
+
+  <p class="section-title">İşlem Sorgula</p>
+  <label>İşlem ID (tx_id)</label>
+  <input id="tx-search-id" type="text" placeholder="sha256 hex..." />
+  <button class="btn btn-ghost" onclick="lookupTx()">🔍 Sorgula</button>
+  <div id="tx-search-result" style="margin-top:12px"></div>
+</div>
+
+<!-- ── MEMPOOL ────────────────────────────────────────────────────── -->
+<div class="page" id="page-mempool">
+  <p class="section-title">Mempool İstatistikleri</p>
+  <div id="mempool-stats">
+    <div style="text-align:center;padding:24px;color:var(--muted)">
+      <div class="spinner" style="margin:auto"></div>
+    </div>
+  </div>
+
+  <p class="section-title">Bekleyen İşlemler</p>
+  <label>Adrese göre filtrele (opsiyonel)</label>
+  <input id="mempool-addr" type="text" placeholder="0x..." />
+  <button class="btn btn-primary" onclick="loadPending()">📋 Listele</button>
+  <div id="pending-list" style="margin-top:12px"></div>
+</div>
+
+<!-- ── SECURITY ───────────────────────────────────────────────────── -->
+<div class="page" id="page-security">
+  <p class="section-title">Konsensüs Durumu</p>
+  <div id="consensus-info">
+    <div style="text-align:center;padding:24px;color:var(--muted)">
+      <div class="spinner" style="margin:auto"></div>
+    </div>
+  </div>
+
+  <p class="section-title" style="margin-top:16px">Konsensüs Güncelle</p>
+  <div class="card">
+    <label>Çevrimiçi Node Sayısı</label>
+    <input id="m-online" type="number" placeholder="100" value="100" />
+    <label>Toplam Node Sayısı</label>
+    <input id="m-total" type="number" placeholder="100" value="100" />
+    <label>Ort. Gecikme (ms)</label>
+    <input id="m-latency" type="number" placeholder="50" value="50" />
+    <label>Tehdit Seviyesi (0-100)</label>
+    <input id="m-threat" type="number" placeholder="0" value="0" min="0" max="100" />
+    <button class="btn btn-primary" onclick="updateMetrics()">📡 Güncelle</button>
+    <div id="metrics-result" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- ── SETTINGS ───────────────────────────────────────────────────── -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="card-title">API Sunucu Adresi</div>
+    <label>REST API URL</label>
+    <input id="api-url" type="url" placeholder="http://localhost:8080" />
+    <button class="btn btn-primary" onclick="saveSettings()">💾 Kaydet</button>
+    <div id="settings-msg" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Bağlantı Testi</div>
+    <button class="btn btn-ghost" onclick="testConnection()" style="margin-bottom:0">
+      🔌 Bağlantıyı Test Et
+    </button>
+    <div id="conn-result" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="card-title">Hakkında</div>
+    <div class="list-item">
+      <span>Sürüm</span>
+      <span class="val">1.0.0</span>
+    </div>
+    <div class="list-item">
+      <span>Platform</span>
+      <span class="val" id="platform-info">—</span>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const DEFAULT_API = "http://localhost:8080";
+let apiBase = localStorage.getItem("satoshi_api") || DEFAULT_API;
+
+// Fill settings input on load
+document.getElementById("api-url").value = apiBase;
+document.getElementById("platform-info").textContent =
+  navigator.userAgent.includes("Mobile") ? "📱 Mobil" : "🖥️ Masaüstü";
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  event.target.classList.add("active");
+  document.getElementById("page-" + name).classList.add("active");
+
+  // Auto-load on first visit
+  if (name === "blocks")   loadBlocks();
+  if (name === "mempool")  loadMempoolStats();
+  if (name === "security") loadConsensus();
+  if (name === "dashboard") refreshDashboard();
+}
+
+// ── API helper ──────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const url = apiBase.replace(/\/$/, "") + path;
+  const res = await fetch(url, { headers: { "Content-Type": "application/json" }, ...opts });
+  return res.json();
+}
+
+function setConn(ok) {
+  const dot  = document.getElementById("conn-dot");
+  const text = document.getElementById("conn-text");
+  if (ok) {
+    dot.style.background  = "var(--green)";
+    dot.style.boxShadow   = "0 0 6px var(--green)";
+    text.textContent = "Bağlı — " + apiBase;
+  } else {
+    dot.style.background  = "var(--red)";
+    dot.style.boxShadow   = "0 0 6px var(--red)";
+    text.textContent = "Bağlantı yok — " + apiBase;
+  }
+}
+
+// ── Dashboard ───────────────────────────────────────────────────────────────
+async function refreshDashboard() {
+  try {
+    const data = await api("/node/status");
+    if (data.success) {
+      const d = data.data;
+      document.getElementById("d-height").textContent   = d.chain_height ?? "—";
+      document.getElementById("d-mempool").textContent  = d.mempool_size  ?? "—";
+      document.getElementById("d-consensus").textContent = d.consensus_type ?? "—";
+      document.getElementById("d-tip").textContent      = d.tip_hash || "—";
+
+      const threat = d.threat_level ?? 0;
+      const threatEl = document.getElementById("d-threat");
+      if (threat >= 75)       { threatEl.textContent = "🔴 KRİTİK"; threatEl.style.color = "var(--red)"; }
+      else if (threat >= 50)  { threatEl.textContent = "🟠 UYARI";  threatEl.style.color = "var(--orange)"; }
+      else if (threat >= 25)  { threatEl.textContent = "🟡 DİKKAT"; threatEl.style.color = "var(--yellow)"; }
+      else                    { threatEl.textContent = "🟢 NORMAL"; threatEl.style.color = "var(--green)"; }
+
+      document.getElementById("d-updated").textContent =
+        new Date(d.timestamp * 1000).toLocaleString("tr-TR");
+      setConn(true);
+    }
+  } catch (e) {
+    setConn(false);
+  }
+}
+
+// ── Blocks ──────────────────────────────────────────────────────────────────
+async function loadBlocks() {
+  const el = document.getElementById("blocks-list");
+  el.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner" style="margin:auto"></div></div>';
+  try {
+    const data = await api("/blocks?limit=10");
+    if (!data.success) throw new Error(data.error);
+    const blocks = data.data.blocks;
+    if (!blocks || blocks.length === 0) {
+      el.innerHTML = '<div class="alert alert-info">Henüz blok yok.</div>';
+      return;
+    }
+    el.innerHTML = blocks.map(b => `
+      <div class="card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;color:var(--blue)">#${b.header?.index ?? b.index ?? "?"}</span>
+          <span style="font-size:11px;color:var(--muted)">${b.header?.timestamp ? new Date(b.header.timestamp*1000).toLocaleTimeString("tr-TR") : ""}</span>
+        </div>
+        <div class="mono" style="margin-top:6px;word-break:break-all">${b.hash ?? "?"}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">
+          ${(b.transactions || []).length} işlem
+        </div>
+      </div>
+    `).join("");
+    setConn(true);
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Hata: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+async function fetchBlock() {
+  const num = document.getElementById("block-num").value;
+  const el  = document.getElementById("block-result");
+  if (!num) { el.innerHTML = '<div class="alert alert-warn">Blok numarası girin.</div>'; return; }
+  try {
+    const data = await api(`/blocks/${num}`);
+    if (!data.success) throw new Error(data.error);
+    el.innerHTML = `<div class="card"><pre style="font-size:11px;overflow-x:auto;white-space:pre-wrap;color:var(--text)">${JSON.stringify(data.data, null, 2)}</pre></div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Hata: ${e.message}</div>`;
+  }
+}
+
+// ── Transactions ─────────────────────────────────────────────────────────────
+async function sendTransaction() {
+  const alertEl = document.getElementById("tx-alert");
+  const tx = {
+    from:       document.getElementById("tx-from").value.trim(),
+    to:         document.getElementById("tx-to").value.trim(),
+    amount:     parseInt(document.getElementById("tx-amount").value) || 0,
+    nonce:      parseInt(document.getElementById("tx-nonce").value) || 0,
+    gas_price:  parseInt(document.getElementById("tx-gas-price").value) || 1,
+    gas_limit:  parseInt(document.getElementById("tx-gas-limit").value) || 21000,
+  };
+  if (!tx.from || !tx.to) { alertEl.innerHTML = '<div class="alert alert-warn">Gönderen ve alıcı adresi zorunludur.</div>'; return; }
+  if (tx.amount <= 0)     { alertEl.innerHTML = '<div class="alert alert-warn">Miktar sıfırdan büyük olmalıdır.</div>'; return; }
+  try {
+    const data = await api("/transactions", {
+      method: "POST",
+      body: JSON.stringify(tx),
+    });
+    if (data.success) {
+      alertEl.innerHTML = `<div class="alert alert-success">✅ İşlem gönderildi!<br><span class="mono">${data.data.tx_id}</span></div>`;
+    } else {
+      alertEl.innerHTML = `<div class="alert alert-error">❌ ${data.error}</div>`;
+    }
+    setConn(true);
+  } catch (e) {
+    alertEl.innerHTML = `<div class="alert alert-error">❌ Bağlantı hatası: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+async function lookupTx() {
+  const id = document.getElementById("tx-search-id").value.trim();
+  const el = document.getElementById("tx-search-result");
+  if (!id) { el.innerHTML = '<div class="alert alert-warn">İşlem ID girin.</div>'; return; }
+  try {
+    const data = await api(`/transactions/${id}`);
+    if (!data.success) throw new Error(data.error);
+    const d = data.data;
+    el.innerHTML = `
+      <div class="card">
+        <div class="list-item"><span>Durum</span><span class="val">${d.status === "confirmed" ? "✅ Onaylı" : "⏳ Bekliyor"}</span></div>
+        <div class="list-item"><span>Gönderen</span><span class="mono">${d.from}</span></div>
+        <div class="list-item"><span>Alıcı</span><span class="mono">${d.to}</span></div>
+        <div class="list-item"><span>Miktar</span><span class="val">${d.amount} SAT</span></div>
+        <div class="list-item"><span>Nonce</span><span class="val">${d.nonce}</span></div>
+      </div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Bulunamadı: ${e.message}</div>`;
+  }
+}
+
+// ── Mempool ──────────────────────────────────────────────────────────────────
+async function loadMempoolStats() {
+  const el = document.getElementById("mempool-stats");
+  try {
+    const data = await api("/mempool");
+    if (!data.success) throw new Error(data.error);
+    const s = data.data;
+    el.innerHTML = `
+      <div class="grid2">
+        <div class="card"><div class="card-title">Bekleyen</div><div class="card-value">${s.pending_count ?? s.size ?? "—"}</div></div>
+        <div class="card"><div class="card-title">Kapasite</div><div class="card-value">${s.capacity ?? "—"}</div></div>
+      </div>
+      <div class="card">
+        <div class="list-item"><span>Toplam Eklenen</span><span class="val">${s.total_added ?? "—"}</span></div>
+        <div class="list-item"><span>Çıkarılan</span><span class="val">${s.total_evicted ?? "—"}</span></div>
+        <div class="list-item"><span>Mine Edildi</span><span class="val">${s.total_mined ?? "—"}</span></div>
+        <div class="list-item"><span>Min Gas Fiyatı</span><span class="val">${s.min_gas_price ?? "—"}</span></div>
+      </div>`;
+    setConn(true);
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Hata: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+async function loadPending() {
+  const addr = document.getElementById("mempool-addr").value.trim();
+  const el   = document.getElementById("pending-list");
+  const url  = addr ? `/transactions/pending?address=${encodeURIComponent(addr)}` : "/transactions/pending";
+  try {
+    const data = await api(url);
+    if (!data.success) throw new Error(data.error);
+    const txs = data.data.transactions;
+    if (!txs || txs.length === 0) {
+      el.innerHTML = '<div class="alert alert-info">Bekleyen işlem yok.</div>';
+      return;
+    }
+    el.innerHTML = txs.map(t => `
+      <div class="card" style="margin-bottom:8px">
+        <div class="mono" style="word-break:break-all;font-size:11px">${t.tx_id}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px">
+          <span style="color:var(--muted)">${t.from?.slice(0,10)}… → ${t.to?.slice(0,10)}…</span>
+          <span style="font-weight:700;color:var(--green)">${t.amount} SAT</span>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Hata: ${e.message}</div>`;
+  }
+}
+
+// ── Security / Consensus ──────────────────────────────────────────────────────
+async function loadConsensus() {
+  const el = document.getElementById("consensus-info");
+  try {
+    const data = await api("/consensus");
+    if (!data.success) throw new Error(data.error);
+    const d = data.data;
+    el.innerHTML = `
+      <div class="card">
+        <div class="list-item"><span>Tip</span><span class="val">${d.type ?? "—"}</span></div>
+        <div class="list-item"><span>Zincir Uzunluğu</span><span class="val">${d.chain_length ?? "—"}</span></div>
+        <div class="list-item"><span>İpucu Hash</span><span class="mono" style="font-size:10px;word-break:break-all">${d.tip_hash ?? "—"}</span></div>
+      </div>`;
+    setConn(true);
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Hata: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+async function updateMetrics() {
+  const el = document.getElementById("metrics-result");
+  const body = {
+    online_nodes: parseInt(document.getElementById("m-online").value) || 100,
+    total_nodes:  parseInt(document.getElementById("m-total").value)  || 100,
+    avg_latency_ms: parseInt(document.getElementById("m-latency").value) || 50,
+    threat_level: parseInt(document.getElementById("m-threat").value)  || 0,
+    transaction_backlog: 0,
+    recent_attacks: 0,
+  };
+  try {
+    const data = await api("/consensus/metrics", { method: "POST", body: JSON.stringify(body) });
+    if (data.success) {
+      el.innerHTML = '<div class="alert alert-success">✅ Metrikler güncellendi.</div>';
+    } else {
+      el.innerHTML = `<div class="alert alert-error">❌ ${data.error}</div>`;
+    }
+    setConn(true);
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">Bağlantı hatası: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+function saveSettings() {
+  const val = document.getElementById("api-url").value.trim();
+  if (!val) return;
+  apiBase = val;
+  localStorage.setItem("satoshi_api", val);
+  document.getElementById("settings-msg").innerHTML =
+    '<div class="alert alert-success">✅ Kaydedildi.</div>';
+  setConn(false);
+}
+
+async function testConnection() {
+  const el = document.getElementById("conn-result");
+  el.innerHTML = '<div class="spinner" style="display:inline-block"></div> Test ediliyor...';
+  try {
+    const data = await api("/health");
+    if (data.success) {
+      el.innerHTML = `<div class="alert alert-success">✅ Bağlantı başarılı!<br>Sunucu sürümü: ${data.data.version}</div>`;
+      setConn(true);
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">❌ Bağlanamadı: ${e.message}</div>`;
+    setConn(false);
+  }
+}
+
+// ── Auto-refresh dashboard every 15s ─────────────────────────────────────────
+refreshDashboard();
+setInterval(() => {
+  const activePage = document.querySelector(".page.active");
+  if (activePage && activePage.id === "page-dashboard") refreshDashboard();
+}, 15000);
+</script>
+</body>
+</html>

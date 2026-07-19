@@ -50,18 +50,17 @@ class AdaptiveDefenseSystem:
     def __init__(self):
         self.current_defense_level = DefenseLevel.NORMAL
         self.current_consensus_mode = ConsensusMode.HYBRID_50_50
-        self.current_strategy = self._get_strategy(DefenseLevel.NORMAL)
-        
+
         # Threat tracking
         self.threat_score = 0.0  # 0.0-1.0
         self.recent_attacks: List[Dict] = []
         self.threat_history: List[float] = []
-        
+
         # Configuration
         self.auto_adapt_enabled = True
         self.adaptation_cooldown = 60  # seconds between adaptations
         self.last_adaptation_time = 0
-        
+
         # Defense effectiveness tracking
         self.defense_effectiveness = {
             "blocked_attacks": 0,
@@ -69,8 +68,8 @@ class AdaptiveDefenseSystem:
             "response_time_ms": 0,
             "total_defense_activations": 0
         }
-        
-        # Strategies for each level
+
+        # Strategies for each level (must be defined before _get_strategy is called)
         self.strategies = {
             DefenseLevel.NORMAL: DefenseStrategy(
                 level=DefenseLevel.NORMAL,
@@ -121,7 +120,10 @@ class AdaptiveDefenseSystem:
                 require_additional_verification=True
             )
         }
-    
+
+        # Set initial strategy now that self.strategies is available
+        self.current_strategy = self._get_strategy(DefenseLevel.NORMAL)
+
     def update_threat_level(self, threat_score: float, attack_info: Optional[Dict] = None):
         """Update threat level and adapt defenses"""
         self.threat_score = max(0.0, min(1.0, threat_score))
