@@ -179,10 +179,12 @@ mod tests {
 
     /// Starting nonce for a freshly created block (will be incremented by the PoW solver).
     const INITIAL_NONCE: u64 = 0;
+    /// Account nonce for the first transaction from a new sender.
+    const FIRST_TX_NONCE: u64 = 1;
 
     #[test]
     fn test_transaction_hash_deterministic() {
-        let tx = Transaction::new("alice", "bob", 100, 1);
+        let tx = Transaction::new("alice", "bob", 100, FIRST_TX_NONCE);
         assert_eq!(tx.hash(), tx.hash());
     }
 
@@ -194,14 +196,14 @@ mod tests {
 
     #[test]
     fn test_merkle_root_single() {
-        let tx = Transaction::new("alice", "bob", 100, 1);
+        let tx = Transaction::new("alice", "bob", 100, FIRST_TX_NONCE);
         let root = compute_merkle_root(&[tx]);
         assert_eq!(root.len(), 64);
     }
 
     #[test]
     fn test_block_creation() {
-        let txs = vec![Transaction::new("alice", "bob", 50, 1)];
+        let txs = vec![Transaction::new("alice", "bob", 50, FIRST_TX_NONCE)];
         let block = Block::new(1, "prevhash".to_string(), txs, INITIAL_NONCE, 2, "miner1".to_string());
         assert_eq!(block.header.index, 1);
         assert_eq!(block.tx_count(), 1);

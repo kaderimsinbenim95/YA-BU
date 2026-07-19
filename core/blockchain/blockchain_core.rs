@@ -137,6 +137,9 @@ impl InternalMempool {
 
 // ─── Proof-of-Work Miner ────────────────────────────────────────────────────
 
+/// Maximum nonce attempts before the miner gives up.
+const MAX_MINING_ATTEMPTS: u64 = 10_000_000;
+
 /// Increments nonce until block hash meets difficulty target.
 pub fn mine_pow(block: &mut Block) -> u64 {
     let target = "0".repeat(block.header.difficulty as usize);
@@ -154,8 +157,8 @@ pub fn mine_pow(block: &mut Block) -> u64 {
         block.header.nonce += 1;
         attempts += 1;
 
-        if attempts > 10_000_000 {
-            panic!("PoW: mining timeout after {} attempts (limit: {})", attempts, 10_000_000);
+        if attempts > MAX_MINING_ATTEMPTS {
+            panic!("PoW: mining timeout after {} attempts (limit: {})", attempts, MAX_MINING_ATTEMPTS);
         }
     }
 }

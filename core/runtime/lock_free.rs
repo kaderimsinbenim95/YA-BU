@@ -263,13 +263,23 @@ unsafe impl<T: Send, const N: usize> Send for RingBuffer<T, N> {}
 
 impl<T, const N: usize> RingBuffer<T, N> {
     pub fn new() -> Self {
-        // SAFETY: initialising Option<T> = None is safe
-        let buffer = unsafe {
-            let mut b: [UnsafeCell<Option<T>>; N] = std::mem::MaybeUninit::uninit().assume_init();
-            for slot in &mut b {
-                std::ptr::write(slot.get(), None);
+        // SAFETY: Each slot is individually initialised to None before being used.
+        // MaybeUninit::uninit_array() allocates uninitialized memory for each element;
+        // we then write `None` into every slot via ptr::write, which is safe.
+        let buffer: [UnsafeCell<Option<T>>; N] = {
+            let mut uninit: [std::mem::MaybeUninit<UnsafeCell<Option<T>>>; N] =
+                // SAFETY: An array of MaybeUninit is always safe to create.
+                unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+            for slot in uninit.iter_mut() {
+                slot.write(UnsafeCell::new(None));
             }
-            b
+            // SAFETY: Every element has been initialised in the loop above.
+            unsafe {
+                std::mem::transmute_copy::<
+                    [std::mem::MaybeUninit<UnsafeCell<Option<T>>>; N],
+                    [UnsafeCell<Option<T>>; N],
+                >(&uninit)
+            }
         };
         Self {
             buffer,

@@ -29,6 +29,13 @@ def to_nibbles(key: bytes) -> List[int]:
 
 
 def nibbles_to_bytes(nibbles: List[int]) -> bytes:
+    """
+    Convert a nibble list back to bytes.
+
+    If the length is odd, a leading zero nibble is prepended to make the
+    total even — this is consistent with the Compact/Hex-Prefix encoding
+    used in Ethereum MPT leaf/extension nodes (EIP-8).
+    """
     if len(nibbles) % 2 != 0:
         nibbles = [0] + nibbles
     result = bytearray()

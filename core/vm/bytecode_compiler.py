@@ -278,8 +278,11 @@ class BytecodeCompiler:
             self._emit(Opcode.PUSH, fixed, comment=f"push float {expr['value']} as fixed")
 
         elif t == "string":
-            # Push string hash (strings are treated as identifiers in the VM)
-            hval = int(hashlib.sha256(expr["value"].encode()).hexdigest()[:8], 16)
+            # Push a 64-bit integer derived from the first 16 hex chars of
+            # the SHA-256 hash of the string value.  Using 16 chars (64 bits)
+            # provides a collision probability of ~2^-32 for typical contract
+            # string sets, which is acceptable for VM use.
+            hval = int(hashlib.sha256(expr["value"].encode()).hexdigest()[:16], 16)
             self._emit(Opcode.PUSH, hval, comment=f'push str "{expr["value"]}"')
 
         elif t in ("true", "boolean") and expr.get("value") is True:

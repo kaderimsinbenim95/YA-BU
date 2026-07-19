@@ -293,7 +293,10 @@ class SatoshiVM:
             elif op == Opcode.JUMPI:
                 offset    = instr.operands[0] if instr.operands else self._pop()
                 condition = self._pop()
-                if not condition:  # Jump when condition is FALSE
+                # JUMPI in SatoshiVM jumps when condition is FALSY (zero/None/False).
+                # This matches the bytecode compiler which emits JUMPI for "if false → else"
+                # and "while false → end" branches.
+                if not condition:
                     if offset is None:
                         raise VMError("JUMPI target unresolved")
                     self._pc = int(offset)

@@ -558,9 +558,10 @@ class Parser:
             # Function call: name(args...)
             if self._current_token().type == TokenType.LPAREN:
                 return self._parse_call(name)
-            # Field access: name.field
-            if self._current_token().type == TokenType.DOT:
-                self._advance()
+            # Field access: name.field (only when followed by an identifier)
+            if (self._current_token().type == TokenType.DOT and
+                    self._peek_token().type == TokenType.IDENTIFIER):
+                self._advance()  # skip '.'
                 field = self._current_token().value
                 self._advance()
                 return {"type": "field_access", "object": name, "field": field}
