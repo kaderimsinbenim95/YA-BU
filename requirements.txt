@@ -1,0 +1,21 @@
+# SatoshiOS-AI-Blockchain — Python dependencies
+#
+# Install all:  pip install -r requirements.txt
+
+# ── REST API ──────────────────────────────────────────────────────────────────
+flask>=2.3.0
+
+# ── WebSocket server ──────────────────────────────────────────────────────────
+websockets>=11.0
+
+# ── AI / ML ───────────────────────────────────────────────────────────────────
+numpy>=1.24.0
+
+# ── System monitoring (benchmarks) ───────────────────────────────────────────
+psutil>=5.9.0
+
+# ── Storage (optional — falls back to in-memory if not installed) ─────────────
+# plyvel>=1.5.0   # LevelDB bindings — uncomment if LevelDB is available
+
+# ── Development / testing ─────────────────────────────────────────────────────
+pytest>=7.0.0

@@ -335,7 +335,7 @@ class SelfLearningEngine:
             print(f"[Training] Epoch {epoch+1}/{epochs} completed")
     
     def _forward_pass(self, X: np.ndarray) -> np.ndarray:
-        """Forward pass through network"""
+        """Forward pass through network — also caches activations for backprop."""
         # Layer 1
         z1 = np.dot(X, self.model_params["weights_l1"]) + self.model_params["bias_l1"]
         a1 = self._relu(z1)
@@ -348,14 +348,58 @@ class SelfLearningEngine:
         z3 = np.dot(a2, self.model_params["weights_out"]) + self.model_params["bias_out"]
         a3 = self._softmax(z3)
         
+        # Cache for use in _backward_pass
+        self._cache = {"X": X, "a1": a1, "a2": a2, "a3": a3, "z1": z1, "z2": z2}
         return a3
     
     def _backward_pass(self, X: np.ndarray, y: np.ndarray, learning_rate: float):
-        """Backward pass and weight updates (simplified)"""
-        # Simplified gradient descent
-        self.model_params["weights_out"] -= learning_rate * 0.01
-        self.model_params["weights_l2"] -= learning_rate * 0.01
-        self.model_params["weights_l1"] -= learning_rate * 0.01
+        """Backward pass: compute gradients via chain rule and update weights."""
+        m = max(X.shape[0], 1)
+        
+        cache = getattr(self, "_cache", None)
+        if cache is None:
+            self._forward_pass(X)
+            cache = self._cache
+        
+        a1, a2, a3 = cache["a1"], cache["a2"], cache["a3"]
+        z1, z2 = cache["z1"], cache["z2"]
+        
+        # One-hot encode labels
+        num_classes = self.model_params["weights_out"].shape[1]
+        y_onehot = np.zeros((m, num_classes))
+        for i, label in enumerate(y):
+            if 0 <= int(label) < num_classes:
+                y_onehot[i, int(label)] = 1.0
+        
+        # Output layer gradient (cross-entropy + softmax combined)
+        dz3 = (a3 - y_onehot) / m
+        dW_out = np.dot(a2.T, dz3)
+        db_out = np.sum(dz3, axis=0, keepdims=True)
+        
+        # Layer 2 gradient
+        da2 = np.dot(dz3, self.model_params["weights_out"].T)
+        dz2 = da2 * (z2 > 0)  # ReLU derivative
+        dW_l2 = np.dot(a1.T, dz2)
+        db_l2 = np.sum(dz2, axis=0, keepdims=True)
+        
+        # Layer 1 gradient
+        da1 = np.dot(dz2, self.model_params["weights_l2"].T)
+        dz1 = da1 * (z1 > 0)  # ReLU derivative
+        dW_l1 = np.dot(X.T, dz1)
+        db_l1 = np.sum(dz1, axis=0, keepdims=True)
+        
+        # Gradient clipping to prevent exploding gradients
+        clip = 5.0
+        for grad in [dW_out, db_out, dW_l2, db_l2, dW_l1, db_l1]:
+            np.clip(grad, -clip, clip, out=grad)
+        
+        # Weight updates
+        self.model_params["weights_out"] -= learning_rate * dW_out
+        self.model_params["bias_out"]    -= learning_rate * db_out
+        self.model_params["weights_l2"]  -= learning_rate * dW_l2
+        self.model_params["bias_l2"]     -= learning_rate * db_l2
+        self.model_params["weights_l1"]  -= learning_rate * dW_l1
+        self.model_params["bias_l1"]     -= learning_rate * db_l1
     
     def _relu(self, x: np.ndarray) -> np.ndarray:
         """ReLU activation function"""

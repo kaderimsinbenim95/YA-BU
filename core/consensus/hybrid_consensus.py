@@ -171,8 +171,9 @@ class ProofOfStake:
             return False
         
         # Simplified signature verification
+        # block.to_bytes() already returns bytes; concatenate bytes directly
         expected_signature = hashlib.sha256(
-            (block.to_bytes() + proposer.encode()).encode()
+            block.to_bytes() + proposer.encode()
         ).hexdigest()
         
         return signature == expected_signature[:16]
@@ -278,9 +279,9 @@ class HybridConsensus:
             print("[Error] No validators available")
             return False
         
-        # Sign block
+        # Sign block — block.to_bytes() returns bytes, concatenate directly
         signature = hashlib.sha256(
-            (block.to_bytes() + proposer.encode()).encode()
+            block.to_bytes() + proposer.encode()
         ).hexdigest()[:16]
         
         # Validate
@@ -321,7 +322,7 @@ class HybridConsensus:
         
         if proposer:
             signature = hashlib.sha256(
-                (block.to_bytes() + proposer.encode()).encode()
+                block.to_bytes() + proposer.encode()
             ).hexdigest()[:16]
             
             if self.pos.validate_block(block, proposer, signature):

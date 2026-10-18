@@ -7,11 +7,18 @@ Provides easy interface for running comprehensive test suite.
 """
 
 import sys
+import os
 import time
 import argparse
 from datetime import datetime
 
-# Import test modules
+# Ensure the project root is on sys.path so both `python tests/run_tests.py`
+# and `python -m tests.run_tests` work correctly.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+# Import test modules (use relative imports when run as a package)
 from tests.test_simulation import SimulationTestSuite
 from tests.threat_scenarios import ThreatScenarioSimulator
 from tests.performance_benchmark import PerformanceBenchmark

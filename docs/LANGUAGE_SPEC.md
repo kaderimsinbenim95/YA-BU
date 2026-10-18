@@ -1,4 +1,16 @@
-# 📝 SatoshiLang Language Specification v1.0
+# 📝 SatoshiLang Language Specification v2.0
+
+## Changelog v2.0
+- Full binary operator precedence (`||`, `&&`, comparison, arithmetic)
+- Unary operators (`!`, `-`)
+- Function call expressions with arguments
+- `while` loops
+- Field access (`object.field`)
+- `float` literal support
+- Boolean literals (`true`, `false`) as proper expressions
+- VM integration: all constructs compile to SatoshiVM bytecode
+
+---
 
 ## 1. Language Overview
 

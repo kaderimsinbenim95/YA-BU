@@ -113,5 +113,68 @@ def select_validator(stakers, slot):
 
 ---
 
-**Version**: 1.0  
+**Version**: 2.0  
 **Status**: Active Development
+
+---
+
+## 6. Storage Integration (v2.0)
+
+Every time a block is accepted by the consensus engine it is:
+
+1. Persisted by `LevelDBStore.apply_block()` — atomic write of block + all transactions
+2. State trie root recomputed by `AccountStateTrie` — account transfers applied
+3. New `state_root` stored in the block header
+
+```
+Consensus Accepts Block
+       ↓
+LevelDBStore.apply_block(block)
+       ↓
+AccountStateTrie.apply_transfer(from, to, amount) × N
+       ↓
+state_root = AccountStateTrie.root_hash()
+       ↓
+Block header.state_root updated
+       ↓
+Tip hash + height saved in metadata
+```
+
+---
+
+## 7. Mempool ↔ Consensus Integration (v2.0)
+
+```
+New Transaction Arrives
+       ↓
+Mempool.add(tx, account_nonce)   ← validates nonce, gas price
+       ↓
+Consensus.mine_next_block()
+  → Mempool.select_for_block(max_gas, max_txs)
+  → Ordered by gas_price DESC, nonce ASC per sender
+       ↓
+Block mined → Mempool.remove_batch(mined_tx_ids)
+```
+
+---
+
+## 8. P2P Block Propagation (v2.0)
+
+New blocks discovered via gossip are validated through the full
+consensus pipeline before being appended to the chain:
+
+```
+GossipProtocol receives BLOCK_DATA
+       ↓
+Chain.validate_block(block)
+  - Index continuity
+  - prev_hash linkage
+  - Hash integrity
+  - PoW difficulty
+  - Merkle root
+       ↓
+If valid → Chain.add_block(block)
+         → LevelDBStore.apply_block(block)
+         → GossipProtocol re-announces to other peers
+If invalid → Discard
+```
